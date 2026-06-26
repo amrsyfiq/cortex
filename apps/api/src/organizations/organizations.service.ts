@@ -83,6 +83,20 @@ export class OrganizationsService {
   }
 
   /**
+   * Members of an org, but ONLY if `userId` is a member of it. This is the
+   * authorization boundary used by the AI assistant's tool: the LLM is untrusted
+   * and may ask about ANY org, so we verify membership here (404 to non-members,
+   * like OrgRoleGuard) rather than trusting the model to behave.
+   */
+  async listMembersForUser(userId: string, slug: string): Promise<OrgMember[]> {
+    const membership = await this.prisma.membership.findFirst({
+      where: { user: { id: userId }, organization: { slug } },
+    });
+    if (!membership) throw new NotFoundException('Organization not found');
+    return this.listMembers(slug);
+  }
+
+  /**
    * Add an existing user to an org by email. (A fuller product would email an
    * invitation to non-users; here we keep it to existing accounts to stay
    * focused on the authorization model.)
