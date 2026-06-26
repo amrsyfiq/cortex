@@ -1,0 +1,7 @@
+# pnpm workspaces tell the package manager which folders are independent
+# packages. Each gets its own package.json but they share one node_modules
+# (hoisted) and one lockfile at the repo root. This is how real monorepos
+# share code (packages/*) between deployable apps (apps/*).
+packages:
+  - "apps/*"
+  - "packages/*"

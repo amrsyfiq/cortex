@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // NestJS leans on decorators (@Module, @Injectable, @Controller). These two
+    // flags let TypeScript emit the runtime metadata Nest's dependency-injection
+    // container reads to know what to inject.
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "outDir": "./dist",
+    // Nest's runtime DI doesn't play well with this strict-index flag in a few
+    // places; relax it here to keep the teaching code readable.
+    "noUncheckedIndexedAccess": false
+  },
+  "include": ["src", "prisma"],
+  "exclude": ["node_modules", "dist"]
+}

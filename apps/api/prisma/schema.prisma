@@ -1,0 +1,80 @@
+// Prisma schema — the single declarative description of our database.
+// Run `pnpm db:migrate` to turn changes here into SQL migrations, and
+// `pnpm db:generate` to regenerate the type-safe client your code imports.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// A person who can log in. Auth data (passwordHash, hashedRefreshToken) lives
+/// here but is NEVER serialized to clients — see @saas/contracts `publicUserSchema`.
+model User {
+  id       String @id @default(cuid())
+  email    String @unique
+  name     String
+
+  /// bcrypt hash of the password. The plaintext password is never stored.
+  passwordHash String
+
+  /// bcrypt hash of the user's current refresh token. Storing it HASHED means a
+  /// DB leak doesn't hand out valid refresh tokens, and setting it to null on
+  /// logout instantly revokes the session.
+  hashedRefreshToken String?
+
+  memberships Membership[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+/// A tenant. Everything in the product is owned by an Organization, not by a
+/// user directly. This is what makes the app multi-tenant.
+model Organization {
+  id   String @id @default(cuid())
+  name String
+  /// URL-safe identifier, unique across the system, e.g. "acme-inc".
+  slug String @unique
+
+  memberships Membership[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("organizations")
+}
+
+/// The join table between User and Organization — but with DATA on it (the
+/// role). This is the "join-table-with-data" pattern. It's what lets one user
+/// belong to many orgs, each with a different role.
+model Membership {
+  id String @id @default(cuid())
+
+  userId         String
+  organizationId String
+
+  role OrgRole @default(MEMBER)
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  /// A user can be a member of a given org at most once.
+  @@unique([userId, organizationId])
+  /// Fast lookups of "all members of this org".
+  @@index([organizationId])
+  @@map("memberships")
+}
+
+enum OrgRole {
+  OWNER
+  ADMIN
+  MEMBER
+}

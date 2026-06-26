@@ -1,0 +1,30 @@
+# ---------------------------------------------------------------------------
+# Local Postgres for development. Run `docker compose up -d` to start it.
+#
+# NOTE: Docker isn't installed on this machine right now, and you already have
+# a local PostgreSQL 17 server. So you can EITHER:
+#   (a) use your local Postgres (see apps/api/.env.example), OR
+#   (b) install Docker and use this file for an isolated, disposable DB.
+# Both are valid; this file documents the "clean room" option teams use in CI.
+# ---------------------------------------------------------------------------
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: saas_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-saas}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-saas}
+      POSTGRES_DB: ${POSTGRES_DB:-saas_dashboard}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-saas}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
