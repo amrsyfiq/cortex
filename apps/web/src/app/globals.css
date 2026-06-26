@@ -185,3 +185,42 @@ button:disabled {
   background: rgba(148, 163, 184, 0.18);
   color: #cbd5e1;
 }
+
+/* AI chat */
+.chat-log {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 320px;
+  overflow-y: auto;
+  margin: 0.75rem 0;
+}
+.chat-msg {
+  max-width: 85%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  white-space: pre-wrap;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+.chat-msg.user {
+  align-self: flex-end;
+  background: var(--accent);
+  color: #fff;
+}
+.chat-msg.assistant {
+  align-self: flex-start;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+}
+.chat-form {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+.chat-form button {
+  width: auto;
+  margin: 0;
+  padding: 0.6rem 1rem;
+  white-space: nowrap;
+}

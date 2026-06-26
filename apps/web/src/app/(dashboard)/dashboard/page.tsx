@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import type { MembershipSummary, PublicUser } from '@saas/contracts';
 import { ApiClientError, apiFetch } from '@/lib/api';
+import { AssistantChat } from './assistant-chat';
 import { WorkspaceSummary } from './workspace-summary';
 
 /**
@@ -37,6 +38,7 @@ export default async function DashboardPage() {
       <p className="muted">{user.email}</p>
 
       <WorkspaceSummary />
+      <AssistantChat />
 
       <h2 style={{ marginTop: '2rem', fontSize: '1.1rem' }}>Your organizations</h2>
       <p className="muted">
