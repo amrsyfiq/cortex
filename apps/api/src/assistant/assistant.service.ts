@@ -1,7 +1,7 @@
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
-import type { OrgSummary } from '@saas/contracts';
+import type { ChatMessage, OrgSummary } from '@saas/contracts';
 import type { Env } from '../config/env.validation';
 import { OrganizationsService } from '../organizations/organizations.service';
 
@@ -38,6 +38,58 @@ export class AssistantService {
   ) {
     const apiKey = this.config.get('GEMINI_API_KEY', { infer: true });
     this.client = apiKey ? new OpenAI({ apiKey, baseURL: this.baseURL }) : null;
+  }
+
+  /** Whether a key is configured — let controllers fail fast before streaming. */
+  get isConfigured(): boolean {
+    return this.client !== null;
+  }
+
+  /**
+   * Layer 2: a STREAMING chat. Returns an async generator that yields the
+   * assistant's reply token-by-token as Gemini produces it.
+   *
+   * Conversation state is stateless on our side: the client sends the whole
+   * `messages` history each turn (just like our JWT-stateless API). We prepend a
+   * server-side system prompt with the user's real org context, so the assistant
+   * can answer questions about their workspace — and we NEVER trust a system
+   * message from the client.
+   */
+  async *streamChat(userId: string, messages: ChatMessage[]): AsyncGenerator<string> {
+    if (!this.client) {
+      throw new ServiceUnavailableException(
+        'The AI assistant is not configured. Set GEMINI_API_KEY in apps/api/.env.',
+      );
+    }
+
+    const memberships = await this.orgs.listForUser(userId);
+    const facts = memberships.length
+      ? memberships
+          .map((m) => `- ${m.organization.name} (slug: ${m.organization.slug}) — role: ${m.role}`)
+          .join('\n')
+      : '(no organizations)';
+
+    const stream = await this.client.chat.completions.create({
+      model: this.model,
+      stream: true, // ← the whole difference: an async iterable of partial chunks
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You are a helpful assistant inside a multi-tenant SaaS dashboard. ' +
+            'Be concise and friendly. Only discuss the user and their workspace; ' +
+            'do not invent data. The signed-in user belongs to these organizations:\n' +
+            facts,
+        },
+        ...messages,
+      ],
+    });
+
+    // Each chunk carries a small delta of the reply; yield the text as it arrives.
+    for await (const chunk of stream) {
+      const delta = chunk.choices[0]?.delta?.content;
+      if (delta) yield delta;
+    }
   }
 
   async summarizeOrganizations(userId: string): Promise<OrgSummary> {
