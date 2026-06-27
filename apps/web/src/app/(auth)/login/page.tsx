@@ -14,13 +14,10 @@ export default async function LoginPage() {
     <main className="center-screen">
       <div className="card narrow">
         <h1>Welcome back</h1>
-        <p className="muted">Sign in to your SaaS dashboard.</p>
+        <p className="muted">Sign in to Cortex.</p>
         <LoginForm />
         <p className="muted" style={{ marginTop: '1rem' }}>
           No account? <Link href="/register">Create one</Link>
-        </p>
-        <p className="muted" style={{ marginTop: '0.75rem' }}>
-          Demo: <code>alice@example.com</code> / <code>password123</code>
         </p>
       </div>
     </main>

@@ -1,8 +1,10 @@
-# SaaS Dashboard — Production-Shaped Monorepo
+# Cortex — LLM Experimentation Playground
 
-A multi-tenant SaaS dashboard built to **read like real production code**, so you
-can learn the patterns by dissecting them. Not a toy CRUD app: it has the layers,
-boundaries, and cross-cutting concerns a real team would ship.
+My personal project to **experiment and play around with LLMs** — built on a
+production-shaped, multi-tenant SaaS dashboard so the AI features (streaming chat,
+tool use, agentic loops) live inside real app patterns — auth, multi-tenancy,
+authorization, cross-cutting concerns — instead of a throwaway demo. It's also
+written to **read like real production code**, so the patterns are worth dissecting.
 
 ## Stack
 
@@ -111,7 +113,14 @@ pnpm dev
 #    Web  → http://localhost:3000
 ```
 
-Demo login (from the seed): `alice@example.com` / `password123`.
+**Demo credentials** (created by `pnpm db:seed`, for local development):
+
+| Email | Password | Role |
+| --- | --- | --- |
+| `alice@example.com` | `password123` | OWNER of Acme, MEMBER of Globex |
+| `bob@example.com` | `password123` | OWNER of Globex |
+
+> These are seeded demo accounts for local dev only. In production, sign up via `/register` — the seed's known passwords are never exposed in the UI.
 
 ## Useful scripts (run from repo root)
 

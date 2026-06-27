@@ -19,7 +19,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div>
       <header className="topbar">
-        <span className="brand">◆ SaaS Dashboard</span>
+        <span className="brand">◆ Cortex</span>
         <form action={logoutAction}>
           <button type="submit" className="logout-btn">
             Log out
