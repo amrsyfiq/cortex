@@ -3,7 +3,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'Cortex',
-  description: 'Cortex — a personal playground for experimenting with LLMs, on a multi-tenant dashboard built with Next.js + NestJS + Prisma',
+  description: 'Cortex — AI playground for experimenting with LLMs: a multi-tenant workspace app integrating the Google Gemini API for an in-app AI chatbot and automated workspace summaries',
 };
 
 /**

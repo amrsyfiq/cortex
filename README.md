@@ -1,10 +1,14 @@
-# Cortex — LLM Experimentation Playground
+# Cortex
 
-My personal project to **experiment and play around with LLMs** — built on a
-production-shaped, multi-tenant SaaS dashboard so the AI features (streaming chat,
-tool use, agentic loops) live inside real app patterns — auth, multi-tenancy,
-authorization, cross-cutting concerns — instead of a throwaway demo. It's also
-written to **read like real production code**, so the patterns are worth dissecting.
+**AI playground for experimenting with LLMs** — a multi-tenant workspace app
+(Next.js, NestJS, TypeScript) integrating the **Google Gemini API** for an in-app
+AI chatbot and automated workspace summaries.
+
+🔗 **Live:** [cortex.amrsyfiq.dev](https://cortex.amrsyfiq.dev)
+
+Built inside production-shaped patterns — auth, multi-tenancy, authorization,
+streaming, and tool use — and written to **read like real production code** rather
+than a throwaway demo.
 
 ## Stack
 
@@ -44,7 +48,7 @@ written to **read like real production code**, so the patterns are worth dissect
 
 ### Why a monorepo?
 
-The frontend and backend must agree on the *shape* of data (a `RegisterInput`,
+The frontend and backend must agree on the _shape_ of data (a `RegisterInput`,
 a `User`, an `Organization`). In separate repos that contract drifts. Here we
 put it in `packages/contracts` **once** and import it from both sides — change it
 and TypeScript flags every caller on both client and server.
@@ -86,7 +90,7 @@ User  ──< Membership >──  Organization
 ```
 
 Authorization isn't "is this user logged in" — it's "does this user have a
-membership in *this* org with a sufficient role." See
+membership in _this_ org with a sufficient role." See
 `apps/api/src/organizations/guards/org-role.guard.ts`.
 
 ## Getting started
@@ -115,23 +119,23 @@ pnpm dev
 
 **Demo credentials** (created by `pnpm db:seed`, for local development):
 
-| Email | Password | Role |
-| --- | --- | --- |
+| Email               | Password      | Role                            |
+| ------------------- | ------------- | ------------------------------- |
 | `alice@example.com` | `password123` | OWNER of Acme, MEMBER of Globex |
-| `bob@example.com` | `password123` | OWNER of Globex |
+| `bob@example.com`   | `password123` | OWNER of Globex                 |
 
-> These are seeded demo accounts for local dev only. In production, sign up via `/register` — the seed's known passwords are never exposed in the UI.
+> These are seeded demo accounts for local dev only. In production, sign up via `/register`.
 
 ## Useful scripts (run from repo root)
 
-| Command            | What it does                                              |
-| ------------------ | -------------------------------------------------------- |
-| `pnpm dev`         | Run api + web in dev mode (hot reload)                   |
-| `pnpm build`       | Build every app/package in dependency order (cached)     |
-| `pnpm typecheck`   | Type-check the whole repo                                |
-| `pnpm db:migrate`  | Apply Prisma migrations to the dev DB                    |
-| `pnpm db:seed`     | Insert demo orgs/users so the UI has data                |
-| `pnpm db:studio`   | Open Prisma Studio (visual DB browser)                   |
+| Command           | What it does                                         |
+| ----------------- | ---------------------------------------------------- |
+| `pnpm dev`        | Run api + web in dev mode (hot reload)               |
+| `pnpm build`      | Build every app/package in dependency order (cached) |
+| `pnpm typecheck`  | Type-check the whole repo                            |
+| `pnpm db:migrate` | Apply Prisma migrations to the dev DB                |
+| `pnpm db:seed`    | Insert demo orgs/users so the UI has data            |
+| `pnpm db:studio`  | Open Prisma Studio (visual DB browser)               |
 
 ## Where to read first (a learning path)
 
