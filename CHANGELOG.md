@@ -8,6 +8,12 @@ this project is pre-release, so everything lives under **Unreleased** for now.
 
 ### Added
 
+- **AI tool use (agentic loop)** — the chat assistant can call a
+  `list_org_members` tool to answer questions it can't from the system prompt
+  alone (e.g. "who are the admins of Acme?"). The model decides when to call it;
+  the API runs it and **enforces authorization inside the tool** — a user can
+  only list members of organizations they belong to, because the LLM is
+  untrusted. The whole loop (model → tool call → result → answer) streams.
 - **Streaming AI chat** — `POST /assistant/chat`: converse with the assistant
   about your workspace, with replies that **stream in token-by-token**.
   - API: streams from Gemini using an async generator (`stream: true`) written

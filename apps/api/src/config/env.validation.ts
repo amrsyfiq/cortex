@@ -22,7 +22,14 @@ export const envSchema = z.object({
   // OPTIONAL on purpose: the app boots fine without it, and only the /assistant
   // routes fail (with a clear message) until it's set.
   // Get a FREE key at https://aistudio.google.com/apikey
-  GEMINI_API_KEY: z.string().min(1).optional(),
+  //
+  // We preprocess '' → undefined first: in dev an unset key means the line is
+  // absent (undefined), but under Docker Compose an unset var arrives as an
+  // empty STRING, which would otherwise fail .min(1). Treat '' as "not set".
+  GEMINI_API_KEY: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z.string().min(1).optional(),
+  ),
 });
 
 export type Env = z.infer<typeof envSchema>;

@@ -1,0 +1,106 @@
+# ===========================================================================
+# PRODUCTION stack — the whole app on one host, run with docker compose.
+#
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+#
+# `--env-file .env.prod` feeds the ${VARS} below (it is gitignored; copy it
+# from .env.prod.example). Four services:
+#
+#   caddy → the ONLY thing exposed to the internet (:80/:443, auto-HTTPS).
+#   web   → Next.js server. Reachable only via caddy.
+#   api   → NestJS. Private — no published ports; only `web` (and `db`) on the
+#           internal network can reach it. This is the BFF pattern your app
+#           already follows (the browser never talks to the API directly).
+#   db    → Postgres. Private, with a named volume so data survives restarts.
+#
+# Images come from GHCR in real deploys (`docker compose ... pull`). The
+# `build:` blocks let you build the same images locally for testing.
+# ===========================================================================
+
+# Names the compose project, so containers/networks/volumes are prefixed
+# `cortex-` (e.g. cortex-api-1) instead of the directory name.
+name: cortex
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # api's depends_on waits for this, so it won't start before the DB is ready.
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    mem_limit: 256m
+
+  api:
+    image: ${REGISTRY:-ghcr.io/amrsyfiq}/cortex-api:${IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      # Talks to the db service by name over the internal Docker network.
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-15m}
+      JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-7d}
+      # Public origin of the web app, for CORS.
+      WEB_ORIGIN: https://${DOMAIN}
+      # Optional — leave blank in .env.prod to disable the AI assistant.
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    mem_limit: 384m
+
+  web:
+    image: ${REGISTRY:-ghcr.io/amrsyfiq}/cortex-web:${IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      # Server-side calls to the API go over the internal network (not the
+      # public internet), so this uses the service name, not the domain.
+      API_URL: http://api:4000/api
+    depends_on:
+      - api
+    mem_limit: 384m
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      # Default to the real web ports in production. For LOCAL testing, set
+      # HTTP_PORT/HTTPS_PORT in .env.prod (e.g. 8080/8443) to avoid clashing
+      # with anything already bound to 80/443 on your machine.
+      - '${HTTP_PORT:-80}:80'
+      - '${HTTPS_PORT:-443}:443'
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./infra/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Persist the issued TLS certificates so Caddy doesn't re-request them
+      # (and hit Let's Encrypt rate limits) on every restart.
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+    mem_limit: 64m
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
