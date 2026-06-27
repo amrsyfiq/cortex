@@ -2,7 +2,7 @@
   "name": "saas-monorepo",
   "version": "0.0.0",
   "private": true,
-  "description": "Cortex — a personal playground for experimenting with LLMs, built on a production-shaped multi-tenant dashboard (Next.js + NestJS + Prisma + PostgreSQL)",
+  "description": "Cortex — multi-tenant workspace app with LLM features (Next.js, NestJS, TypeScript) integrating the Google Gemini API for an in-app AI chatbot and automated workspace summaries",
   "engines": {
     "node": ">=22",
     "pnpm": ">=10"
