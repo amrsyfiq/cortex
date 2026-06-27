@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'SaaS Dashboard',
-  description: 'Multi-tenant SaaS dashboard — Next.js + NestJS + Prisma',
+  title: 'Cortex',
+  description: 'Cortex — a personal playground for experimenting with LLMs, on a multi-tenant dashboard built with Next.js + NestJS + Prisma',
 };
 
 /**

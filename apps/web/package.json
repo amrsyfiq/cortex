@@ -2,7 +2,7 @@
   "name": "@saas/web",
   "version": "0.0.0",
   "private": true,
-  "description": "Next.js frontend — App Router UI for the SaaS dashboard",
+  "description": "Next.js frontend — App Router UI for Cortex",
   "scripts": {
     "dev": "next dev --port 3000",
     "build": "next build",
