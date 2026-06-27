@@ -4,6 +4,8 @@
 integrating the **Google Gemini API** for an in-app AI chatbot and automated
 workspace summaries.
 
+🔗 **Live:** [cortex.amrsyfiq.dev](https://cortex.amrsyfiq.dev)
+
 A personal project to experiment with LLMs inside production-shaped patterns — auth,
 multi-tenancy, authorization, streaming, and tool use — written to **read like real
 production code** rather than a throwaway demo.
