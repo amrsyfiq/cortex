@@ -1,14 +1,14 @@
 # Cortex
 
-**Multi-tenant workspace app with LLM features** (Next.js, NestJS, TypeScript),
-integrating the **Google Gemini API** for an in-app AI chatbot and automated
-workspace summaries.
+**AI playground for experimenting with LLMs** — a multi-tenant workspace app
+(Next.js, NestJS, TypeScript) integrating the **Google Gemini API** for an in-app
+AI chatbot and automated workspace summaries.
 
 🔗 **Live:** [cortex.amrsyfiq.dev](https://cortex.amrsyfiq.dev)
 
-A personal project to experiment with LLMs inside production-shaped patterns — auth,
-multi-tenancy, authorization, streaming, and tool use — written to **read like real
-production code** rather than a throwaway demo.
+Built inside production-shaped patterns — auth, multi-tenancy, authorization,
+streaming, and tool use — and written to **read like real production code** rather
+than a throwaway demo.
 
 ## Stack
 

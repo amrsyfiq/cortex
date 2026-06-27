@@ -2,7 +2,7 @@
   "name": "saas-monorepo",
   "version": "0.0.0",
   "private": true,
-  "description": "Cortex — multi-tenant workspace app with LLM features (Next.js, NestJS, TypeScript) integrating the Google Gemini API for an in-app AI chatbot and automated workspace summaries",
+  "description": "Cortex — AI playground for experimenting with LLMs: a multi-tenant workspace app (Next.js, NestJS, TypeScript) integrating the Google Gemini API for an in-app AI chatbot and automated workspace summaries",
   "engines": {
     "node": ">=22",
     "pnpm": ">=10"

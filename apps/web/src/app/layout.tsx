@@ -3,7 +3,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'Cortex',
-  description: 'Cortex — multi-tenant workspace app with LLM features: an in-app AI chatbot and automated workspace summaries, powered by the Google Gemini API',
+  description: 'Cortex — AI playground for experimenting with LLMs: a multi-tenant workspace app integrating the Google Gemini API for an in-app AI chatbot and automated workspace summaries',
 };
 
 /**
