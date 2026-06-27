@@ -1,0 +1,22 @@
+# ---------------------------------------------------------------------------
+# Caddy reverse proxy. Caddy automatically obtains and renews a free Let's
+# Encrypt TLS certificate for {$DOMAIN} (set in .env.prod), so you get HTTPS
+# with zero extra config — as long as:
+#   1. DNS for $DOMAIN points at this server's public IP, and
+#   2. ports 80 and 443 are open to the internet (the AWS security group).
+#
+# ALL traffic goes to the Next.js `web` service. We deliberately do NOT route
+# /api to the NestJS service here: the browser only ever talks to the web app
+# (Server Components / Server Actions / Next route handlers call the API from
+# the server side, over the private Docker network). Next also serves its own
+# /api/* route handlers (e.g. /api/assistant/chat), so exposing Nest on /api
+# would collide. Keeping the API private is the more secure default.
+# ---------------------------------------------------------------------------
+# For a real domain ($DOMAIN=mysaas.duckdns.org) Caddy fetches a Let's Encrypt
+# cert. For local testing ($DOMAIN=localhost) Caddy serves HTTPS using its own
+# built-in local CA — no edits needed either way; just visit https://localhost
+# (your browser will warn about the local cert; that's expected on a laptop).
+{$DOMAIN} {
+	encode gzip
+	reverse_proxy web:3000
+}

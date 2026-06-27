@@ -1,0 +1,32 @@
+# What Docker should NOT send into the build context (and so can't end up in an
+# image). Keeps builds fast and prevents leaking local secrets/artifacts.
+
+# Dependencies — reinstalled fresh inside the image
+**/node_modules
+.pnpm-store
+
+# Build outputs — rebuilt inside the image
+**/dist
+**/.next
+**/out
+**/build
+**/*.tsbuildinfo
+**/.turbo
+
+# Secrets — never copy real env files in (only *.example is safe, but the
+# images get their config from docker-compose env, not baked-in files)
+**/.env
+**/.env.*
+!**/.env.example
+
+# VCS / editor / OS noise
+.git
+.github
+.gitignore
+.idea
+.vscode
+**/.DS_Store
+
+# Tests / docs not needed at build time
+**/coverage
+*.md

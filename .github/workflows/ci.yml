@@ -1,0 +1,49 @@
+# ===========================================================================
+# CI — runs on pull requests and on pushes to any branch EXCEPT main. It proves
+# the code builds and type-checks before it can be merged. (Deploys to main are
+# handled separately by deploy.yml, which also rebuilds.)
+# Free for public repos: unlimited minutes.
+# ===========================================================================
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # corepack reads the "packageManager" field in package.json, so CI uses
+      # the exact pnpm version the repo is pinned to.
+      - name: Enable corepack (pnpm)
+        run: corepack enable
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The Prisma client is generated code, not committed. `nest build` and
+      # typecheck need its types, so generate it first. (No DB needed — this
+      # only reads the schema.)
+      - name: Generate Prisma client
+        run: pnpm --filter @saas/api db:generate
+
+      - name: Build (contracts → apps, via turbo)
+        run: pnpm build
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
