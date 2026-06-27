@@ -34,3 +34,6 @@ pnpm-debug.log*
 
 # Test coverage
 coverage/
+
+# Local ops runbook — contains host IP / deploy details, kept off git
+DEPLOYMENT.md
