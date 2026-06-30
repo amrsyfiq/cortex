@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import type { ChatMessage, OrgSummary } from '@saas/contracts';
 import type { Env } from '../config/env.validation';
+import { DocumentsService } from '../documents/documents.service';
 import { OrganizationsService } from '../organizations/organizations.service';
 
 /**
@@ -26,7 +27,7 @@ export class AssistantService {
   private readonly baseURL = 'https://generativelanguage.googleapis.com/v1beta/openai/';
 
   /** A fast, free-tier Gemini model. Swap here to change models.
-   *  (Note: 2.0-flash has a 0 free-tier quota on some projects; 2.5-flash works.) */
+   *  (Free tier is ~20 req/day per model; use a billing-enabled key for more.) */
   private readonly model = 'gemini-2.5-flash';
 
   /** Null when no key is configured — we fail clearly instead of at call time. */
@@ -59,11 +60,41 @@ export class AssistantService {
         },
       },
     },
+    {
+      type: 'function',
+      function: {
+        name: 'search_documents',
+        description:
+          'Search the notes and documents BY MEANING (semantic search over meeting ' +
+          'notes, client circumstances, plans, decisions, etc.). Use this whenever ' +
+          'the user asks about the CONTENT of notes or about clients/people/plans ' +
+          'that are not in the member list — search FIRST instead of saying you ' +
+          "can't help. Omit `slug` to search across all the user's organizations; " +
+          'set it only to restrict to one org. Returns the most relevant excerpts.',
+        parameters: {
+          type: 'object',
+          properties: {
+            query: {
+              type: 'string',
+              description: 'What to look for, in natural language.',
+            },
+            slug: {
+              type: 'string',
+              description:
+                'Optional. The organization slug (e.g. "acme") to restrict the ' +
+                "search to one org. Omit to search all the user's orgs.",
+            },
+          },
+          required: ['query'],
+        },
+      },
+    },
   ];
 
   constructor(
     private readonly config: ConfigService<Env, true>,
     private readonly orgs: OrganizationsService, // reused from the Organizations module
+    private readonly documents: DocumentsService, // semantic search over org notes
   ) {
     const apiKey = this.config.get('GEMINI_API_KEY', { infer: true });
     this.client = apiKey ? new OpenAI({ apiKey, baseURL: this.baseURL }) : null;
@@ -107,7 +138,12 @@ export class AssistantService {
           'You are a helpful assistant inside a multi-tenant SaaS dashboard. ' +
           'Be concise and friendly. Only discuss the user and their workspace; ' +
           'do not invent data. Use the list_org_members tool to look up who is in ' +
-          'an organization. The signed-in user belongs to these organizations:\n' +
+          'an organization. Use the search_documents tool to answer ANY question ' +
+          'about clients, people, plans, or circumstances that might be in the ' +
+          'notes — search FIRST (across all their orgs if they did not name one) ' +
+          "before saying you can't help. Call search_documents at most once per " +
+          'question, then ANSWER from the results it returns — do not keep ' +
+          'searching. The signed-in user belongs to these organizations:\n' +
           facts,
       },
       ...messages,
@@ -116,12 +152,17 @@ export class AssistantService {
     // THE AGENTIC LOOP. Each pass streams the model's response; if it asked to
     // call tools, we run them, append the results, and loop so the model can
     // answer using them. It ends when the model replies with text instead of a
-    // tool call. The bound (4) stops a runaway tool-calling loop.
-    for (let step = 0; step < 4; step++) {
+    // tool call. The bound stops a runaway tool-calling loop.
+    const MAX_STEPS = 4;
+    for (let step = 0; step < MAX_STEPS; step++) {
+      // On the FINAL step we drop the tools, so the model is forced to answer in
+      // text instead of calling yet another tool — this guarantees the user gets
+      // a reply even if the model would otherwise keep searching forever.
+      const isFinalStep = step === MAX_STEPS - 1;
       const stream = await this.client.chat.completions.create({
         model: this.model,
         stream: true,
-        tools: this.tools,
+        tools: isFinalStep ? undefined : this.tools,
         messages: convo,
       });
 
@@ -182,29 +223,45 @@ export class AssistantService {
    * a JSON string (success data or an error) that goes back to the model.
    */
   private async runTool(userId: string, name: string, argsJson: string): Promise<string> {
-    if (name !== 'list_org_members') {
-      return JSON.stringify({ error: `Unknown tool: ${name}` });
-    }
-
-    let slug = '';
+    // Arguments arrive as a JSON string the model generated, so parse defensively.
+    let args: Record<string, unknown> = {};
     try {
       const parsed: unknown = JSON.parse(argsJson || '{}');
-      if (parsed && typeof parsed === 'object' && 'slug' in parsed) {
-        const value = (parsed as { slug: unknown }).slug;
-        if (typeof value === 'string') slug = value;
-      }
+      if (parsed && typeof parsed === 'object') args = parsed as Record<string, unknown>;
     } catch {
       return JSON.stringify({ error: 'Invalid tool arguments.' });
     }
+    const str = (v: unknown): string => (typeof v === 'string' ? v : '');
 
-    try {
-      // listMembersForUser enforces that the user is a member of this org.
-      const members = await this.orgs.listMembersForUser(userId, slug);
-      return JSON.stringify({ organization: slug, members });
-    } catch {
-      // Non-member or unknown org: tell the model, but reveal nothing.
-      return JSON.stringify({ error: `You don't have access to "${slug}", or it does not exist.` });
+    if (name === 'list_org_members') {
+      const slug = str(args.slug);
+      try {
+        // listMembersForUser enforces that the user is a member of this org.
+        const members = await this.orgs.listMembersForUser(userId, slug);
+        return JSON.stringify({ organization: slug, members });
+      } catch {
+        // Non-member or unknown org: tell the model, but reveal nothing.
+        return JSON.stringify({ error: `You don't have access to "${slug}", or it does not exist.` });
+      }
     }
+
+    if (name === 'search_documents') {
+      const slug = str(args.slug);
+      const query = str(args.query);
+      try {
+        // With a slug, scope to that one org (membership enforced). Without one,
+        // search across every org the user belongs to. Both stay inside the
+        // user's tenancy — the model can't reach another tenant's notes.
+        const matches = slug
+          ? await this.documents.searchForUser(userId, slug, query)
+          : await this.documents.searchAcrossUserOrgs(userId, query);
+        return JSON.stringify({ scope: slug || 'all your organizations', matches });
+      } catch {
+        return JSON.stringify({ error: `You don't have access to "${slug}", or it does not exist.` });
+      }
+    }
+
+    return JSON.stringify({ error: `Unknown tool: ${name}` });
   }
 
   async summarizeOrganizations(userId: string): Promise<OrgSummary> {

@@ -40,10 +40,12 @@ export function AssistantChat() {
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
+      let received = '';
       for (;;) {
         const { done, value } = await reader.read();
         if (done) break;
         const chunk = decoder.decode(value, { stream: true });
+        received += chunk;
         // Append the chunk to the LAST message (the assistant bubble).
         setMessages((prev) => {
           const last = prev[prev.length - 1];
@@ -52,6 +54,13 @@ export function AssistantChat() {
           copy[copy.length - 1] = { role: last.role, content: last.content + chunk };
           return copy;
         });
+      }
+      // The stream can close with nothing (e.g. a free-tier rate limit on the
+      // model's answer step). Don't leave an empty, frozen-looking bubble.
+      if (received.trim() === '') {
+        throw new Error(
+          "The assistant didn't return a response (often the free-tier rate limit). Please try again.",
+        );
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.');

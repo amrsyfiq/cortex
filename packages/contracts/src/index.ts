@@ -19,5 +19,6 @@
 export * from './common';
 export * from './user';
 export * from './organization';
+export * from './document';
 export * from './auth';
 export * from './assistant';
