@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import type { MembershipSummary, PublicUser } from '@saas/contracts';
+import type { MembershipSummary, PublicDocument, PublicUser } from '@saas/contracts';
 import { ApiClientError, apiFetch } from '@/lib/api';
 import { AssistantChat } from './assistant-chat';
 import { WorkspaceSummary } from './workspace-summary';
@@ -17,11 +17,13 @@ import { WorkspaceSummary } from './workspace-summary';
 export default async function DashboardPage() {
   let user: PublicUser;
   let memberships: MembershipSummary[];
+  let documents: PublicDocument[];
 
   try {
-    [user, memberships] = await Promise.all([
+    [user, memberships, documents] = await Promise.all([
       apiFetch<PublicUser>('/users/me'),
       apiFetch<MembershipSummary[]>('/organizations'),
+      apiFetch<PublicDocument[]>('/documents'),
     ]);
   } catch (err) {
     // Token expired/invalid → can't clear cookies during render, so redirect to
@@ -56,6 +58,32 @@ export default async function DashboardPage() {
               <div className="name">{organization.name}</div>
               <div className="muted">/{organization.slug}</div>
               <span className={`badge ${role}`}>{role}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <h2 style={{ marginTop: '2rem', fontSize: '1.1rem' }}>Knowledge base</h2>
+      <p className="muted">
+        Notes across your organizations. The AI assistant searches these by
+        meaning to answer your questions.
+      </p>
+
+      {documents.length === 0 ? (
+        <p className="muted" style={{ marginTop: '1rem' }}>
+          No documents yet.
+        </p>
+      ) : (
+        <div style={{ marginTop: '1rem', display: 'grid', gap: '0.75rem' }}>
+          {documents.map((doc) => (
+            <div key={doc.id} className="org-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
+                <span className="name">{doc.title}</span>
+                <span className="muted">/{doc.organization.slug}</span>
+              </div>
+              <p className="muted" style={{ marginTop: '0.4rem' }}>
+                {doc.content}
+              </p>
             </div>
           ))}
         </div>

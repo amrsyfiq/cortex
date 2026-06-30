@@ -12,6 +12,8 @@
  */
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+import OpenAI from 'openai';
+import { GEMINI_BASE_URL, embedText } from '../src/documents/embedding.util';
 
 const prisma = new PrismaClient();
 
@@ -61,6 +63,84 @@ async function main(): Promise<void> {
     update: { role: 'MEMBER' },
     create: { userId: alice.id, organizationId: globex.id, role: 'MEMBER' },
   });
+
+  // --- RAG demo data: org documents (adviser notes) with embeddings ---------
+  // These let the AI assistant answer questions about the CONTENT of notes via
+  // semantic search (the search_documents tool), not just the member list.
+  // Embeddings need the Gemini key, so we skip this block cleanly without one.
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (!geminiKey) {
+    console.warn(
+      'GEMINI_API_KEY not set — skipping document seeding (semantic search needs embeddings).',
+    );
+  } else {
+    const ai = new OpenAI({ apiKey: geminiKey, baseURL: GEMINI_BASE_URL });
+
+    const docs = [
+      {
+        org: acme,
+        title: 'Client review — Margaret Chen',
+        content:
+          'Margaret Chen, age 58, wants to retire at 60. Risk-averse — prefers ' +
+          'capital protection over growth. Pension pot is about £450,000. Main ' +
+          'concern is funding potential care costs for her elderly mother. Agreed ' +
+          'to shift towards lower-volatility funds and review again in 12 months.',
+      },
+      {
+        org: acme,
+        title: 'Client review — David Okoro',
+        content:
+          'David Okoro, age 31, software engineer. High risk tolerance, comfortable ' +
+          'with volatility. Wants to maximise his Stocks & Shares ISA allowance and ' +
+          'is keen on technology funds. Saving for a house deposit in roughly three ' +
+          'years, so we ring-fenced that portion in a lower-risk cash account.',
+      },
+      {
+        org: acme,
+        title: 'Compliance note — annual suitability reviews',
+        content:
+          'Firm policy: every advised client must have a documented annual ' +
+          'suitability review. Each review must record the client\'s current ' +
+          'attitude to risk, capacity for loss, and any change in circumstances. ' +
+          'Reviews older than 14 months are flagged as overdue for compliance.',
+      },
+      {
+        org: globex,
+        title: 'Client review — the Hartley family',
+        content:
+          'The Hartleys are planning their estate. Combined assets around £1.2m, ' +
+          'including the family home. Three adult children. Priority is reducing ' +
+          'inheritance tax exposure. Discussed using trusts and making use of the ' +
+          'annual gifting allowance. Referred to a tax specialist for the trust setup.',
+      },
+      {
+        org: globex,
+        title: 'Internal note — Q2 fund changes',
+        content:
+          'In Q2 we moved affected clients out of the Meridian Growth fund into the ' +
+          'Lowland Balanced fund, driven by a rise in Meridian\'s ongoing charges. ' +
+          'All impacted clients were notified in writing and consent recorded.',
+      },
+    ];
+
+    // Idempotent: clear this demo\'s docs for these orgs, then re-create with fresh embeddings.
+    await prisma.document.deleteMany({
+      where: { organizationId: { in: [acme.id, globex.id] } },
+    });
+
+    for (const doc of docs) {
+      const embedding = await embedText(ai, doc.content);
+      await prisma.document.create({
+        data: {
+          organizationId: doc.org.id,
+          title: doc.title,
+          content: doc.content,
+          embedding,
+        },
+      });
+    }
+    console.log(`Seeded ${docs.length} documents with embeddings.`);
+  }
 
   console.log('Seed complete. Log in with alice@example.com / password123');
 }

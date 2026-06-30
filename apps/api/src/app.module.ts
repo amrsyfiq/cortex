@@ -6,6 +6,7 @@ import { validateEnv } from './config/env.validation';
 import { AssistantModule } from './assistant/assistant.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { DocumentsModule } from './documents/documents.module';
 import { HealthModule } from './health/health.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -36,6 +37,7 @@ import { UsersModule } from './users/users.module';
     AuthModule,
     UsersModule,
     OrganizationsModule,
+    DocumentsModule,
     AssistantModule,
   ],
   providers: [

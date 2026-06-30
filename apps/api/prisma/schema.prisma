@@ -43,11 +43,40 @@ model Organization {
   slug String @unique
 
   memberships Membership[]
+  documents   Document[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@map("organizations")
+}
+
+/// A free-text document owned by an Organization — e.g. an adviser's meeting
+/// notes. Each row carries an `embedding`: a numeric vector that captures the
+/// MEANING of `content`, produced by an embedding model. We search these by
+/// meaning (semantic search / RAG), not by keyword.
+model Document {
+  id             String @id @default(cuid())
+  organizationId String
+
+  title   String
+  /// The raw note text. This is what gets embedded and what we hand to the LLM.
+  content String
+
+  /// The embedding of `content`: one float per dimension of the embedding model.
+  /// Stored as a plain array because we rank by cosine similarity IN APP CODE. At
+  /// scale you'd store this as a real vector column and search in SQL with the
+  /// pgvector extension instead.
+  embedding Float[]
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// Fast lookup of "all documents in this org" (we load an org's docs to rank them).
+  @@index([organizationId])
+  @@map("documents")
 }
 
 /// The join table between User and Organization — but with DATA on it (the
